@@ -1,5 +1,6 @@
 import mujoco_py as mj
 import numpy as np
+import random
 
 class Q_learning:
     def __init__(self):
@@ -27,6 +28,23 @@ class Q_learning:
         new_q = self.get_q(s, a) + alpha * (r + gamma - max_q - self.get_q(s, a))
         self.set_q(s, a, new_q)
 
+    def get_random_action(self, a):
+        return random.randint(0, len(a))
+
+    def get_best_action(self, a):
+        return np.argmax(a)
+
+    def get_EGreedy_action(self, a, epsilon):
+        random_float = random.random()
+        action = np.zeros(7)
+        if random_float < epsilon:
+            action[self.get_random_action(a)] = 0.1
+            return action
+        else:
+            action[self.get_best_action(a)] = 0.1
+            return action
+
+
 class Hopper:
     def __init__(self):
         self.model = mj.load_model_from_path('xml/hopper.xml')
@@ -37,7 +55,7 @@ class Hopper:
         return self.sim.data.ctrl
 
     def do_action(self, a):
-        self.sim.data.ctrl = a
+        self.sim.data.ctrl[0:] = a
         return self.sim.data.ctrl
 
     def reset(self):
@@ -49,6 +67,9 @@ class Simulation:
         self.Q = Q_learning()
         self.hopper = Hopper()
         self.viewer = mj.MjViewer(self.hopper.sim)
+        self.learning_rate = 0.1
+        self.discount_value = 0.9
+        self.epsilon = 0.5
 
     def get_r(self):
         r = 1
@@ -57,10 +78,20 @@ class Simulation:
     def run(self):
         t = 0
         while True:
+
+            old_state = self.hopper.get_state()
+            action = self.Q.get_EGreedy_action(old_state, self.epsilon)
+            print(action)
+            new_state = self.hopper.do_action(action)
+            self.Q.update_q(old_state, action, self.get_r(), new_state, self.learning_rate, self.discount_value)
+
             self.hopper.sim.step()
             t += 0.002
 
             self.viewer.render()
+
+simulation = Simulation()
+simulation.run()
 
 '''''
 TO-DO: - hopper needs a is_alive function to check if it is still standing
