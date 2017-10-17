@@ -60,6 +60,3 @@ class NeuralNetwork:
                 self.weights[j] = np.subtract(self.weights[j], learning_rate * self.errorFunctionPrime(trainX, trainY)[0][j])
             self.error[i] = self.errorFunction(trainX, trainY)*100
 
-    def predict(self, X):
-        return self.forward(X)
-
