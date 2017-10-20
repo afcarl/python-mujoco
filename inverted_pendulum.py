@@ -1,16 +1,15 @@
 import mujoco_py as mj
 import numpy as np
 import random
-from math import degrees, radians
+from math import degrees
 from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
-import gym
 
 class Brain:
     def __init__(self, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
-        self.replay_memory = deque(maxlen=2000)
+        self.replay_memory = deque(maxlen=500)
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
@@ -28,7 +27,7 @@ class Brain:
                       optimizer=Adam(lr=self.learning_rate))
         return model
 
-    # memory = [state, action, reward, new_state]
+    # memory = [state, action_number, reward, new_state]
     def add_memory(self, memory):
         self.replay_memory.append(memory)
 
@@ -78,20 +77,23 @@ class Environment:
 
     def is_done(self):
         angle = degrees(self.sim.get_state().qpos[1])
+
         if 20. > angle > -20.:
             return False
         else:
             return True
 
-    def get_reward(self):
-        return 1
-
+    def get_reward(self, done):
+        if not done:
+            return 1
+        else:
+            return -10
 
     def step(self, action):
         self.inverted_pendulum.do_action(action)
         self.sim.step()
         state = np.array([self.sim.get_state().qpos.tolist() + self.sim.get_state().qvel.tolist()])
-        reward = self.get_reward()
+        reward = self.get_reward(self.is_done())
         return state, reward, self.is_done()
 
     def render(self):
@@ -109,16 +111,15 @@ class Simulation(Environment):
         self.env = Environment.__init__(self)
         self.epochs = 1000
         self.batch_size = 32
-        self.env = gym.make('CartPole-v1')
 
     def run(self):
+        time_list = [0.01]
         for e in range(self.epochs):
             state = self.reset()
-            state = self.env.reset()
-            state = np.reshape(state, [1, 4])
             for time in range(500):
 
-                #self.render()
+                if sum(time_list)/len(time_list) > 150:
+                    self.render()
 
                 q_values = self.inverted_pendulum.net.predict(state)
                 if random.random() < self.inverted_pendulum.epsilon:
@@ -127,25 +128,21 @@ class Simulation(Environment):
                     index = np.argmax(q_values)
                 action = self.inverted_pendulum.get_action()[index]
 
-                new_state, reward, done, _ = self.env.step(index)
-                new_state = np.reshape(new_state, [1, 4])
-                #new_state, reward, done = self.step(action)
-                #reward = self.get_reward()
-                reward = reward if not done else -10
+                new_state, reward, done = self.step(action)
 
-                memory = (state, action, reward, new_state, done)
+                memory = (state, index, reward, new_state, done)
                 self.inverted_pendulum.add_memory(memory)
 
                 state = new_state
-                if done:
-                    print("episode: {}/{}, score: {}, e: {}".format(e, self.epochs, time,
-                                                                    self.inverted_pendulum.epsilon))
+                time_list.append(time)
+
+                if done or time == 499:
+                    print("episode: {}/{}, score: {}, average: {}, e: {}".format(e, self.epochs, time,
+                                                         sum(time_list)/len(time_list), self.inverted_pendulum.epsilon))
                     break
 
             if len(self.inverted_pendulum.replay_memory) > self.batch_size:
                 self.inverted_pendulum.replay(self.batch_size)
-                # if e % 10 == 0:
-                #     agent.save("./save/cartpole-dqn.h5")
 
 simulation = Simulation()
 simulation.run()
