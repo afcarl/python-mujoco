@@ -2,16 +2,24 @@ import mujoco_py as mj
 import numpy as np
 import random
 from collections import deque
+import os
+
+# Set to run on cpu
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
 
 class Brain:
-    def __init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
+    def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min,
+                 epsilon_decay):
         self.replay_memory = deque(maxlen=memory_length)
+        self.batch_size = batch_size
         self.topology = topology
         self.learning_rate = learning_rate
+        self.epochs = epochs
         self.gamma = gamma
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
@@ -32,8 +40,8 @@ class Brain:
     def add_memory(self, memory):
         self.replay_memory.append(memory)
 
-    def replay(self, batch_size):
-        mini_batch = random.sample(self.replay_memory, batch_size)
+    def replay(self):
+        mini_batch = random.sample(self.replay_memory, self.batch_size)
         for state, action, reward, next_state, done in mini_batch:
             target = reward
             if not done:
@@ -53,14 +61,14 @@ class Brain:
             training_x = np.vstack((training_x, state))
             training_y = np.vstack((training_y, target_f))
 
-        self.net.fit(training_x, training_y, epochs=10, verbose=0)
+        self.net.fit(training_x, training_y, epochs=self.epochs, verbose=0)
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
 
 
 class Agent(Brain):
-    def __init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
-        Brain.__init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
+    def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
+        Brain.__init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
         self.model = mj.load_model_from_path('xml/inverted_pendulum.xml')
         self.sim = mj.MjSim(self.model)
 
