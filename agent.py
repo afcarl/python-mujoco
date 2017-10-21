@@ -1,15 +1,16 @@
 import mujoco_py as mj
 import numpy as np
 import random
-from math import degrees
 from collections import deque
 from keras.models import Sequential
 from keras.layers import Dense
 from keras.optimizers import Adam
 
+
 class Brain:
-    def __init__(self, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
-        self.replay_memory = deque(maxlen=500)
+    def __init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
+        self.replay_memory = deque(maxlen=memory_length)
+        self.topology = topology
         self.learning_rate = learning_rate
         self.gamma = gamma
         self.epsilon = epsilon
@@ -20,9 +21,9 @@ class Brain:
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
-        model.add(Dense(24, input_dim=4, activation='relu'))
-        model.add(Dense(24, activation='relu'))
-        model.add(Dense(2, activation='linear'))
+        model.add(Dense(self.topology[0][1], input_dim=self.topology[0][0], activation=self.topology[1][0]))
+        for i in range(len(self.topology[0])-2):
+            model.add(Dense(self.topology[0][i+2], activation=self.topology[1][i+1]))
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
         return model
@@ -58,8 +59,8 @@ class Brain:
 
 
 class Agent(Brain):
-    def __init__(self, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
-        Brain.__init__(self, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
+    def __init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
+        Brain.__init__(self, topology, memory_length, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
         self.model = mj.load_model_from_path('xml/inverted_pendulum.xml')
         self.sim = mj.MjSim(self.model)
 
