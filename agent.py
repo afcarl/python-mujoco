@@ -76,16 +76,16 @@ class Brain:
 
 
 class Agent(Brain):
-    def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
+    def __init__(self, model3Dpath, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
         Brain.__init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
-        self.model3D = mj.load_model_from_path('xml/inverted_pendulum.xml')
+        self.model3D = mj.load_model_from_path(model3Dpath)
         self.sim = mj.MjSim(self.model3D)
 
     def get_possible_actions(self):
         return np.array([[-1], [1]])
 
     def do_action(self, a):
-        self.sim.data.ctrl[0] = a
+        self.sim.data.ctrl[0:] = a
 
     def act(self, state):
         q_values = self.net.predict(state)
