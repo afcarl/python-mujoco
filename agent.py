@@ -7,7 +7,7 @@ import os
 # Set to run on cpu
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense
 from keras.optimizers import Adam
 
@@ -15,7 +15,8 @@ from keras.optimizers import Adam
 class Brain:
     def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min,
                  epsilon_decay):
-        self.replay_memory = deque(maxlen=memory_length)
+        self.memory_length = memory_length
+        self.replay_memory = deque(maxlen=self.memory_length)
         self.batch_size = batch_size
         self.topology = topology
         self.learning_rate = learning_rate
@@ -26,6 +27,10 @@ class Brain:
         self.epsilon_decay = epsilon_decay
         self.net = self._build_model()
 
+    def load_model(self, path):
+        del self.net
+        self.net = load_model(path)
+
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
         model = Sequential()
@@ -35,6 +40,10 @@ class Brain:
         model.compile(loss='mse',
                       optimizer=Adam(lr=self.learning_rate))
         return model
+
+    def save_model(self, path):
+        self.net.save(path, overwrite=True)
+        del self.net
 
     # memory = [state, action_number, reward, new_state]
     def add_memory(self, memory):
@@ -69,8 +78,8 @@ class Brain:
 class Agent(Brain):
     def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
         Brain.__init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
-        self.model = mj.load_model_from_path('xml/inverted_pendulum.xml')
-        self.sim = mj.MjSim(self.model)
+        self.model3D = mj.load_model_from_path('xml/inverted_pendulum.xml')
+        self.sim = mj.MjSim(self.model3D)
 
     def get_possible_actions(self):
         return np.array([[-1], [1]])
