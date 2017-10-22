@@ -3,7 +3,10 @@ import numpy as np
 import os
 
 files = os.listdir("./logs")
-data = np.genfromtxt("./logs/" + files[-1], comments="#")
+data = np.genfromtxt("./logs/" + files[3], comments="#")
+
+for i in files:
+    print(i)
 
 N = 50
 moving_mean = np.convolve(data, np.ones((N,))/N, mode='valid')
