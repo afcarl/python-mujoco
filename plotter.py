@@ -5,7 +5,7 @@ import ast
 
 folder_path = "./logs/inverted_double_pendulum/"
 PARAMETERS = {'model3Dpath': 'xml/inverted_double_pendulum.xml',
-                  'topology': [[6, 24, 24, 2], ['relu', 'relu', 'linear']],
+                  'topology': [[6, 48, 48, 2], ['relu', 'relu', 'linear']],
                   'memory_length': 2000,
                   'batch_size': 32,
                   'epochs': 100,
