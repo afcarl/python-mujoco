@@ -32,7 +32,7 @@ class Environment:
         if not self.is_done():
             return 1
         else:
-            return -10
+            return -1
 
     def step(self, index):
         self.agent.do_action(self.agent.get_possible_actions()[index])
@@ -82,7 +82,7 @@ if __name__ == "__main__":
                   'epsilon_min': 0.1,
                   'epsilon_decay': 0.997}
 
-    # env.test_agent(parameters, './models/inverted_double_pendulum_v0.h5')
+    # env.test_agent(PARAMETERS, './models/inverted_double_pendulum_v0.h5')
     env.spawn_agent(PARAMETERS)
 
     epochs = 200000
@@ -93,7 +93,7 @@ if __name__ == "__main__":
             if ord(msvcrt.getch()) == 59:
                 break
 
-        state = env.reset(number_of_random_actions=1)
+        state = env.reset(number_of_random_actions=5)
         for step in range(max_steps):
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)
@@ -106,6 +106,11 @@ if __name__ == "__main__":
                 score_list.append(step)
                 break
 
+        if e % 250 == 0:
+            print("Updating target network")
+            w = env.agent.q_network.get_weights()
+            env.agent.q_network_target.set_weights(w)
+
         if len(env.agent.replay_memory) >= env.agent.batch_size:
             env.agent.replay()
 
@@ -116,4 +121,3 @@ if __name__ == "__main__":
     file.write(str(PARAMETERS) + "\n")
     for score in score_list:
         file.write(str(score) + '\n')
-
