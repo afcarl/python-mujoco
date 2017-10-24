@@ -3,17 +3,17 @@ import numpy as np
 import os
 import ast
 
-folder_path = "./logs/inverted_double_pendulum/"
-PARAMETERS = {'model3Dpath': 'xml/inverted_double_pendulum.xml',
-                  'topology': [[6, 48, 48, 2], ['relu', 'relu', 'linear']],
+folder_path = "./logs/inverted_pendulum/"
+PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
+                  'topology': [[4, 24, 24, 2], ['relu', 'relu', 'linear']],
                   'memory_length': 2000,
                   'batch_size': 32,
                   'epochs': 100,
-                  'learning_rate': 0.0001,
+                  'learning_rate': 0.001,
                   'gamma': 0.995,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
-                  'epsilon_decay': 0.997}
+                  'epsilon_decay': 0.995}
 
 files = os.listdir(folder_path)
 for file in files:

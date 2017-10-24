@@ -75,17 +75,17 @@ if __name__ == "__main__":
                   'memory_length': 2000,
                   'batch_size': 32,
                   'epochs': 100,
-                  'learning_rate': 0.0001,
+                  'learning_rate': 0.001,
                   'gamma': 0.995,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
-                  'epsilon_decay': 0.997}
+                  'epsilon_decay': 0.995}
     # env.test_agent(PARAMETERS, './models/inverted_pendulum_v0.h5')
 
     env.spawn_agent(PARAMETERS)
 
-    epochs = 200000
-    max_steps = 500
+    epochs = 2000
+    max_steps = 1000
     score_list = []
     for e in range(epochs):
         if msvcrt.kbhit():
@@ -100,10 +100,14 @@ if __name__ == "__main__":
             env.agent.add_memory(memory)
 
             state = new_state
-            if done or step == 499:
+            if done or step == max_steps-1:
                 print("Episode: {}, Score: {}/{}, epsilon: {}".format(e, step, max_steps-1, round(env.agent.epsilon, 2)))
                 score_list.append(step)
                 break
+
+        if e % 100 == 0:
+            w = env.agent.q_network.get_weights()
+            env.agent.q_network_target.set_weights(w)
 
         if len(env.agent.replay_memory) >= env.agent.batch_size:
             env.agent.replay()
