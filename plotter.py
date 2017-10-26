@@ -5,7 +5,7 @@ import ast
 
 folder_path = "./logs/inverted_pendulum/"
 PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
-                  'topology': [[4, 24, 24, 2], ['relu', 'relu', 'linear']],
+                  'topology': [[4, 64, 2], ['relu', 'linear']],
                   'memory_length': 10000,
                   'batch_size': 64,
                   'epochs': 1,
@@ -21,6 +21,7 @@ for file in files:
     line = f.readline()
     parameters = ast.literal_eval(line)
     if parameters == PARAMETERS:
-        data = np.genfromtxt(folder_path + file, skip_header=1)
-        plt.plot(range(len(data)), data)
+        data = np.genfromtxt(folder_path + file, delimiter=',', skip_header=1)
+        plt.plot(data[:, 0])
+        plt.plot(data[:, 1])
         plt.show()

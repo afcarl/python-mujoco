@@ -71,7 +71,7 @@ class Environment:
 if __name__ == "__main__":
     env = Environment()
     PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
-                  'topology': [[4, 24, 24, 2], ['relu', 'relu', 'linear']],
+                  'topology': [[4, 64, 2], ['relu', 'linear']],
                   'memory_length': 10000,
                   'batch_size': 64,
                   'epochs': 1,
@@ -84,10 +84,11 @@ if __name__ == "__main__":
 
     env.spawn_agent(PARAMETERS)
 
-    epochs = 2500
-    max_steps = 200
+    epochs = 1000
+    max_steps = 2000
     score_list = []
     q_values = []
+    temp_q = []
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
@@ -97,6 +98,9 @@ if __name__ == "__main__":
         for step in range(max_steps):
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)
+
+            q = np.sum(env.agent.q_network.predict(state), axis=1)
+            temp_q.append(q[0]/2)
 
             if done:
                 new_state = None
@@ -114,6 +118,8 @@ if __name__ == "__main__":
                 score_list.append(step)
                 break
 
+        q_values.append(sum(temp_q) / len(temp_q))
+
         # Decay the epsilon
         if env.agent.epsilon > env.agent.epsilon_min:
             env.agent.epsilon *= env.agent.epsilon_decay
@@ -123,6 +129,6 @@ if __name__ == "__main__":
     time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
     file = open("./logs/inverted_pendulum/" + time_string + ".txt", 'w')
     file.write(str(PARAMETERS) + "\n")
-    for score in score_list:
-        file.write(str(score) + '\n')
+    for i in range(len(score_list)):
+        file.write(str(score_list[i]) + ', ' + str(q_values[i]) + '\n')
 
