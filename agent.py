@@ -51,30 +51,8 @@ class Brain:
     def add_memory(self, memory):
         self.replay_memory.append(memory)
 
-    def replay(self):
-        mini_batch = random.sample(self.replay_memory, self.batch_size)
-        for state, action, reward, next_state, done in mini_batch:
-            target = reward
-            if not done:
-                target = (reward + self.gamma *
-                          np.amax(self.q_network_target.predict(next_state)[0]))
-            target_f = self.q_network_target.predict(state)
-            target_f[0][action] = target
-
-            # If the variable name does not exist create it and initiate it.
-            try:
-                training_x
-                training_y
-            except NameError:
-                training_x = state
-                training_y = target_f
-
-            training_x = np.vstack((training_x, state))
-            training_y = np.vstack((training_y, target_f))
-
-        self.q_network.fit(training_x, training_y, epochs=self.epochs, verbose=0)
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+    def train(self, x, y):
+        self.q_network.fit(x, y, epochs=self.epochs, verbose=0)
 
 
 class Agent(Brain):
@@ -98,3 +76,20 @@ class Agent(Brain):
         else:
             action = np.argmax(q_values)
         return action
+
+    def replay(self):
+        mini_batch = random.sample(self.replay_memory, self.batch_size)
+        states = np.stack([state[0][0] for state in mini_batch])
+        target = self.q_network.predict(states)
+
+        for i in range(len(mini_batch)):
+            a = mini_batch[i][1]
+            r = mini_batch[i][2]
+            s_ = mini_batch[i][3]
+
+            if s_ is None:
+                target[i][a] = r
+            else:
+                target[i][a] = (r + self.gamma * np.amax(self.q_network.predict(s_)))
+
+        self.train(states, target)
