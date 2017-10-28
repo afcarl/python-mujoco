@@ -80,7 +80,7 @@ if __name__ == "__main__":
                   'epsilon': 1,
                   'epsilon_min': 0.01,
                   'epsilon_decay': 0.99}
-    env.test_agent(PARAMETERS, './models/inverted_pendulum_v0.2.h5')
+    env.test_agent(PARAMETERS, './models/inverted_pendulum/inverted_pendulum_v0.2.h5')
 
     # env.spawn_agent(PARAMETERS)
 
@@ -133,7 +133,7 @@ if __name__ == "__main__":
         if int(q_values[-1] >= 100):
             break
 
-    env.agent.save_model('./models/inverted_pendulum_v0.2.h5')
+    env.agent.save_model('./models/inverted_pendulum/inverted_pendulum_v0.3.h5')
 
     time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
     file = open("./logs/inverted_pendulum/" + time_string + ".txt", 'w')
