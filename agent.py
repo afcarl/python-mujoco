@@ -4,7 +4,7 @@ import random
 from collections import deque
 import os
 
-# Set to run on cpu
+# Set to run on CPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 from keras.models import Sequential, load_model
@@ -40,19 +40,22 @@ class Brain:
         model.add(Dense(self.topology[0][1], input_dim=self.topology[0][0], activation=self.topology[1][0]))
         for i in range(len(self.topology[0])-2):
             model.add(Dense(self.topology[0][i+2], activation=self.topology[1][i+1]))
-        model.compile(loss='mse',
+        model.compile(loss='mean_squared_error',
                       optimizer=Adam(lr=self.learning_rate))
         return model
 
     def save_model(self, path):
         self.q_network.save(path, overwrite=True)
 
-    # memory = [state, action_number, reward, new_state]
+    # memory = [state, action_number, reward, new_state, done]
     def add_memory(self, memory):
         self.replay_memory.append(memory)
 
     def train(self, x, y):
         self.q_network.fit(x, y, epochs=self.epochs, verbose=0)
+
+    def update_target(self):
+        self.q_network_target.set_weights(self.q_network.get_weights())
 
 
 class Agent(Brain):
@@ -90,6 +93,6 @@ class Agent(Brain):
             if s_ is None:
                 target[i][a] = r
             else:
-                target[i][a] = (r + self.gamma * np.amax(self.q_network.predict(s_)))
+                target[i][a] = r + self.gamma * self.q_network_target.predict(s_)[0][np.argmax(self.q_network.predict(s_))]
 
         self.train(states, target)

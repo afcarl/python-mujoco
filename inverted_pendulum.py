@@ -56,10 +56,10 @@ class Environment:
     def test_agent(self, parameters, model_path):
         self.spawn_agent(parameters)
         self.agent.load_model(model_path)
-        self.agent.epsilon = 0.01
+        self.agent.epsilon = 0.3
 
         while True:
-            state = env.reset(number_of_random_actions=1)
+            state = env.reset(number_of_random_actions=5)
             for time in range(100000):
                 self.render()
                 action = self.agent.act(state)
@@ -80,22 +80,23 @@ if __name__ == "__main__":
                   'epsilon': 1,
                   'epsilon_min': 0.01,
                   'epsilon_decay': 0.99}
-    # env.test_agent(PARAMETERS, './models/inverted_pendulum_v0.h5')
+    env.test_agent(PARAMETERS, './models/inverted_pendulum_v0.2.h5')
 
-    env.spawn_agent(PARAMETERS)
+    # env.spawn_agent(PARAMETERS)
 
-    epochs = 1000
+    epochs = 400
     max_steps = 2000
     score_list = []
-    q_values = []
+    q_values = [0.]
     temp_q = []
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
                 break
 
-        state = env.reset(number_of_random_actions=3)
+        state = env.reset(number_of_random_actions=5)
         for step in range(max_steps):
+            env.render()
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)
 
@@ -114,7 +115,8 @@ if __name__ == "__main__":
                 env.agent.replay()
 
             if done or step == max_steps-1:
-                print("Episode: {}, Score: {}/{}, epsilon: {}".format(e, step, max_steps-1, round(env.agent.epsilon, 2)))
+                print("Episode: {}, Score: {}/{}, Q-Value: {}, epsilon: {}".format(e, step, max_steps-1, int(q_values[-1]),
+                                                                                   round(env.agent.epsilon, 2)))
                 score_list.append(step)
                 break
 
@@ -124,11 +126,17 @@ if __name__ == "__main__":
         if env.agent.epsilon > env.agent.epsilon_min:
             env.agent.epsilon *= env.agent.epsilon_decay
 
-    env.agent.save_model('./models/inverted_pendulum_v0.1.h5')
+        if e % 25 == 0:
+            print("Updated Target Network")
+            env.agent.update_target()
+
+        if int(q_values[-1] >= 100):
+            break
+
+    env.agent.save_model('./models/inverted_pendulum_v0.2.h5')
 
     time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
     file = open("./logs/inverted_pendulum/" + time_string + ".txt", 'w')
     file.write(str(PARAMETERS) + "\n")
     for i in range(len(score_list)):
         file.write(str(score_list[i]) + ', ' + str(q_values[i]) + '\n')
-
