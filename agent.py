@@ -26,7 +26,7 @@ class Brain:
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
         self.q_network = self._build_model()
-        self.q_network_target = self.q_network
+        self.q_network_target = self._build_model()
 
     def load_model(self, path):
         del self.q_network
