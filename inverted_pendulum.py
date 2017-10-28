@@ -4,6 +4,7 @@ import random
 from math import degrees
 from agent import Agent
 import msvcrt
+import time
 
 
 class Environment:
@@ -13,8 +14,8 @@ class Environment:
         self.sim = None
         self.initial_state = None
 
-    def spawn_agent(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay):
-        self.agent = Agent(topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min, epsilon_decay)
+    def spawn_agent(self, parameters):
+        self.agent = Agent(parameters)
         self.sim = self.agent.sim
         self.initial_state = self.sim.get_state()
 
@@ -30,7 +31,7 @@ class Environment:
         if not self.is_done():
             return 1
         else:
-            return -10
+            return -1
 
     def step(self, index):
         self.agent.do_action(self.agent.get_possible_actions()[index])
@@ -52,14 +53,13 @@ class Environment:
             self.step(a)
         return np.array([self.sim.get_state().qpos.tolist() + self.sim.get_state().qvel.tolist()])
 
-    def test_agent(self):
-        self.spawn_agent(topology=[[4, 24, 24, 2], ['relu', 'relu', 'linear']], memory_length=2000, batch_size=32,
-                        epochs=100, learning_rate=0.0001, gamma=0.995, epsilon=1, epsilon_min=0.01, epsilon_decay=0.997)
-        self.agent.load_model('./models/inverted_pendulum_v0.h5')
-        self.agent.epsilon = 0.1
+    def test_agent(self, parameters, model_path):
+        self.spawn_agent(parameters)
+        self.agent.load_model(model_path)
+        self.agent.epsilon = 0.3
 
         while True:
-            state = env.reset(number_of_random_actions=1)
+            state = env.reset(number_of_random_actions=5)
             for time in range(100000):
                 self.render()
                 action = self.agent.act(state)
@@ -67,45 +67,76 @@ class Environment:
                 state = new_state
                 if done:
                     break
-            break
 
 if __name__ == "__main__":
     env = Environment()
-    'env.test_agent()'
-    env.spawn_agent(topology=[[4, 24, 24, 2], ['relu', 'relu', 'linear']], memory_length=2000, batch_size=32, epochs=100,
-                    learning_rate=0.0001, gamma=0.995, epsilon=1, epsilon_min=0.01, epsilon_decay=0.997)
+    PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
+                  'topology': [[4, 64, 2], ['relu', 'linear']],
+                  'memory_length': 10000,
+                  'batch_size': 64,
+                  'epochs': 1,
+                  'learning_rate': 0.001,
+                  'gamma': 0.99,
+                  'epsilon': 1,
+                  'epsilon_min': 0.01,
+                  'epsilon_decay': 0.99}
+    env.test_agent(PARAMETERS, './models/inverted_pendulum/inverted_pendulum_v0.2.h5')
 
-    epochs = 200000
-    max_steps = 500
+    # env.spawn_agent(PARAMETERS)
+
+    epochs = 400
+    max_steps = 2000
     score_list = []
+    q_values = [0.]
+    temp_q = []
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
                 break
 
-        state = env.reset(number_of_random_actions=1)
-        for time in range(max_steps):
+        state = env.reset(number_of_random_actions=5)
+        for step in range(max_steps):
+            env.render()
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)
+
+            q = np.sum(env.agent.q_network.predict(state), axis=1)
+            temp_q.append(q[0]/2)
+
+            if done:
+                new_state = None
+
             memory = (state, action, reward, new_state, done)
             env.agent.add_memory(memory)
 
             state = new_state
-            if done or time == 499:
-                print("Episode: {}, Score: {}/{}, epsilon: {}".format(e, time, max_steps-1, round(env.agent.epsilon, 2)))
-                score_list.append(time)
+
+            if len(env.agent.replay_memory) >= env.agent.batch_size:
+                env.agent.replay()
+
+            if done or step == max_steps-1:
+                print("Episode: {}, Score: {}/{}, Q-Value: {}, epsilon: {}".format(e, step, max_steps-1, int(q_values[-1]),
+                                                                                   round(env.agent.epsilon, 2)))
+                score_list.append(step)
                 break
 
-        if len(env.agent.replay_memory) >= env.agent.batch_size:
-            env.agent.replay()
+        q_values.append(sum(temp_q) / len(temp_q))
 
-    env.agent.save_model('./models/inverted_pendulum_v1.h5')
+        # Decay the epsilon
+        if env.agent.epsilon > env.agent.epsilon_min:
+            env.agent.epsilon *= env.agent.epsilon_decay
 
-    settings = "topology=[[4, 24, 24, 2], ['relu', 'relu', 'linear']], memory_length=2000, batch_size=32, epochs=100, " \
-               "learning_rate=0.0001, gamma=0.995, epsilon=1, epsilon_min=0.01, epsilon_decay=0.997"
-    file = open("./logs/inverted_pendulum" + settings + ".txt", 'w')
-    file.write("#" + settings + "\n")
-    for score in score_list:
-        file.write(str(score) + '\n')  
+        if e % 25 == 0:
+            print("Updated Target Network")
+            env.agent.update_target()
 
+        if int(q_values[-1] >= 100):
+            break
 
+    env.agent.save_model('./models/inverted_pendulum/inverted_pendulum_v0.3.h5')
+
+    time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
+    file = open("./logs/inverted_pendulum/" + time_string + ".txt", 'w')
+    file.write(str(PARAMETERS) + "\n")
+    for i in range(len(score_list)):
+        file.write(str(score_list[i]) + ', ' + str(q_values[i]) + '\n')

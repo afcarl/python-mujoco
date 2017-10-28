@@ -4,7 +4,7 @@ import random
 from collections import deque
 import os
 
-# Set to run on cpu
+# Set to run on CPU
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 from keras.models import Sequential, load_model
@@ -25,11 +25,14 @@ class Brain:
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
-        self.net = self._build_model()
+        self.q_network = self._build_model()
+        self.q_network_target = self.q_network
 
     def load_model(self, path):
-        del self.net
-        self.net = load_model(path)
+        del self.q_network
+        del self.q_network_target
+        self.q_network = load_model(path)
+        self.q_network_target = self.q_network
 
     def _build_model(self):
         # Neural Net for Deep-Q learning Model
@@ -37,42 +40,22 @@ class Brain:
         model.add(Dense(self.topology[0][1], input_dim=self.topology[0][0], activation=self.topology[1][0]))
         for i in range(len(self.topology[0])-2):
             model.add(Dense(self.topology[0][i+2], activation=self.topology[1][i+1]))
-        model.compile(loss='mse',
+        model.compile(loss='mean_squared_error',
                       optimizer=Adam(lr=self.learning_rate))
         return model
 
     def save_model(self, path):
-        self.net.save(path, overwrite=True)
-        del self.net
+        self.q_network.save(path, overwrite=True)
 
-    # memory = [state, action_number, reward, new_state]
+    # memory = [state, action_number, reward, new_state, done]
     def add_memory(self, memory):
         self.replay_memory.append(memory)
 
-    def replay(self):
-        mini_batch = random.sample(self.replay_memory, self.batch_size)
-        for state, action, reward, next_state, done in mini_batch:
-            target = reward
-            if not done:
-                target = (reward + self.gamma *
-                          np.amax(self.net.predict(next_state)[0]))
-            target_f = self.net.predict(state)
-            target_f[0][action] = target
+    def train(self, x, y):
+        self.q_network.fit(x, y, epochs=self.epochs, verbose=0)
 
-            # If the variable name does not exist create it and initiate it.
-            try:
-                training_x
-                training_y
-            except NameError:
-                training_x = state
-                training_y = target_f
-
-            training_x = np.vstack((training_x, state))
-            training_y = np.vstack((training_y, target_f))
-
-        self.net.fit(training_x, training_y, epochs=self.epochs, verbose=0)
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+    def update_target(self):
+        self.q_network_target.set_weights(self.q_network.get_weights())
 
 
 class Agent(Brain):
@@ -90,9 +73,26 @@ class Agent(Brain):
         self.sim.data.ctrl[0:] = a
 
     def act(self, state):
-        q_values = self.net.predict(state)
+        q_values = self.q_network.predict(state)
         if random.random() < self.epsilon:
             action = random.randint(0, len(q_values[0]) - 1)
         else:
             action = np.argmax(q_values)
         return action
+
+    def replay(self):
+        mini_batch = random.sample(self.replay_memory, self.batch_size)
+        states = np.stack([state[0][0] for state in mini_batch])
+        target = self.q_network.predict(states)
+
+        for i in range(len(mini_batch)):
+            a = mini_batch[i][1]
+            r = mini_batch[i][2]
+            s_ = mini_batch[i][3]
+
+            if s_ is None:
+                target[i][a] = r
+            else:
+                target[i][a] = r + self.gamma * self.q_network_target.predict(s_)[0][np.argmax(self.q_network.predict(s_))]
+
+        self.train(states, target)
