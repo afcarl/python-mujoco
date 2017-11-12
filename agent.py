@@ -2,6 +2,7 @@ import mujoco_py as mj
 import numpy as np
 import random
 from collections import deque
+from sum_tree import SumTree
 import os
 
 # Set to run on CPU
@@ -12,11 +13,44 @@ from keras.layers import Dense
 from keras.optimizers import Adam
 
 
-class Brain:
+class Memory:
+    def __init__(self, memory_length):
+        self.memory_length = memory_length
+        self.tree = SumTree(memory_length)
+        self.e = 0.01
+        self.a = 0.6
+
+    def _get_priority(self, error):
+        return (error + self.e) ** self.a
+
+    def add_memory(self, error, sample):
+        p = self._get_priority(error)
+        self.tree.add(p, sample)
+
+    def sample_memory(self, n):
+        batch = []
+        segment = self.tree.total() / n
+
+        for i in range(n):
+            a = segment * i
+            b = segment * (i + 1)
+
+            s = random.uniform(a, b)
+            (idx, p, data) = self.tree.get(s)
+            batch.append( (idx, data) )
+
+        return batch
+
+    def update_memory(self, idx, error):
+        p = self._get_priority(error)
+        self.tree.update(idx, p)
+
+
+class Brain(Memory):
     def __init__(self, topology, epochs, memory_length, batch_size, learning_rate, gamma, epsilon, epsilon_min,
                  epsilon_decay):
+        Memory.__init__(self, memory_length)
         self.memory_length = memory_length
-        self.replay_memory = deque(maxlen=self.memory_length)
         self.batch_size = batch_size
         self.topology = topology
         self.learning_rate = learning_rate
@@ -46,10 +80,6 @@ class Brain:
 
     def save_model(self, path):
         self.q_network.save(path, overwrite=True)
-
-    # memory = [state, action_number, reward, new_state, done]
-    def add_memory(self, memory):
-        self.replay_memory.append(memory)
 
     def train(self, x, y):
         self.q_network.fit(x, y, epochs=self.epochs, verbose=0)
@@ -81,18 +111,23 @@ class Agent(Brain):
         return action
 
     def replay(self):
-        mini_batch = random.sample(self.replay_memory, self.batch_size)
-        states = np.stack([state[0][0] for state in mini_batch])
+        mini_batch = self.sample_memory(self.batch_size)
+        states = np.stack([state[1][0][0] for state in mini_batch])
+        errors = np.zeros(len(mini_batch))
         target = self.q_network.predict(states)
 
         for i in range(len(mini_batch)):
-            a = mini_batch[i][1]
-            r = mini_batch[i][2]
-            s_ = mini_batch[i][3]
+            a = mini_batch[i][1][1]
+            r = mini_batch[i][1][2]
+            s_ = mini_batch[i][1][3]
 
+            old_val = target[i][a]
             if s_ is None:
                 target[i][a] = r
             else:
                 target[i][a] = r + self.gamma * self.q_network_target.predict(s_)[0][np.argmax(self.q_network.predict(s_))]
+
+            errors[i] = abs(old_val - target[i][a])
+            self.update_memory(mini_batch[i][0], errors[i])
 
         self.train(states, target)

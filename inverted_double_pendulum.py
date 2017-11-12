@@ -75,17 +75,17 @@ if __name__ == "__main__":
                   'topology': [[6, 48, 24, 2], ['relu', 'relu', 'linear']],
                   'memory_length': 10000,
                   'batch_size': 64,
-                  'epochs': 1,
+                  'epochs': 6,
                   'learning_rate': 0.001,
                   'gamma': 0.99,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
-                  'epsilon_decay': 0.995}
+                  'epsilon_decay': 0.999}
     # env.test_agent(PARAMETERS, './models/inverted_double_pendulum_v0.h5')
 
     env.spawn_agent(PARAMETERS)
 
-    epochs = 1000
+    epochs = 100000
     max_steps = 2000
     score_list = []
     q_values = [0.]
@@ -107,12 +107,9 @@ if __name__ == "__main__":
                 new_state = None
 
             memory = (state, action, reward, new_state, done)
-            env.agent.add_memory(memory)
+            env.agent.add_memory(abs(reward), memory)
 
             state = new_state
-
-            if len(env.agent.replay_memory) >= env.agent.batch_size:
-                env.agent.replay()
 
             if done or step == max_steps-1:
                 print("Episode: {}, Score: {}/{}, Q-Value: {}, epsilon: {}".format(e, step, max_steps-1, int(q_values[-1]),
@@ -120,13 +117,16 @@ if __name__ == "__main__":
                 score_list.append(step)
                 break
 
+        if env.agent.memory_length >= env.agent.batch_size:
+            env.agent.replay()
+
         q_values.append(sum(temp_q) / len(temp_q))
 
         # Decay the epsilon
         if env.agent.epsilon > env.agent.epsilon_min:
             env.agent.epsilon *= env.agent.epsilon_decay
 
-        if e % 1 == 0:
+        if e % 5 == 0:
             env.agent.update_target()
 
         #if int(q_values[-1] >= 100):
