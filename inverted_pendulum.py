@@ -68,13 +68,14 @@ class Environment:
                 if done:
                     break
 
+
 if __name__ == "__main__":
     env = Environment()
     PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
                   'topology': [[4, 64, 2], ['relu', 'linear']],
-                  'memory_length': 10000,
-                  'batch_size': 256,
-                  'epochs': 10,
+                  'memory_length': 5000,
+                  'batch_size': 128,
+                  'epochs': 15,
                   'learning_rate': 0.001,
                   'gamma': 0.99,
                   'epsilon': 1,
@@ -84,17 +85,38 @@ if __name__ == "__main__":
 
     env.spawn_agent(PARAMETERS)
 
-    epochs = 4000
-    max_steps = 1000
+    epochs = 1000
+    max_steps = 1001
     score_list = []
     q_values = [0.]
-    temp_q = []
+
+    # Fill memory with random memories
+    i = 0
+    while i <= PARAMETERS['memory_length']:
+        state = env.reset(number_of_random_actions=5)
+        while True:
+            action = env.agent.act(state)
+            new_state, reward, done = env.step(action)
+
+            if done:
+                new_state = None
+
+            memory = (state, action, reward, new_state, done)
+            env.agent.add_memory(abs(reward), memory)
+
+            state = new_state
+            i += 1
+
+            if done:
+                break
+
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
                 break
 
         state = env.reset(number_of_random_actions=5)
+        temp_q = []
         for step in range(max_steps):
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)

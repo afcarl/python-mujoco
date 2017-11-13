@@ -74,13 +74,13 @@ if __name__ == "__main__":
     PARAMETERS = {'model3Dpath': 'xml/inverted_double_pendulum.xml',
                   'topology': [[6, 48, 24, 2], ['relu', 'relu', 'linear']],
                   'memory_length': 10000,
-                  'batch_size': 64,
-                  'epochs': 6,
+                  'batch_size': 128,
+                  'epochs': 15,
                   'learning_rate': 0.001,
                   'gamma': 0.99,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
-                  'epsilon_decay': 0.999}
+                  'epsilon_decay': 0.997}
     # env.test_agent(PARAMETERS, './models/inverted_double_pendulum_v0.h5')
 
     env.spawn_agent(PARAMETERS)
@@ -89,13 +89,34 @@ if __name__ == "__main__":
     max_steps = 2000
     score_list = []
     q_values = [0.]
-    temp_q = []
+
+    # Fill memory with random memories
+    i = 0
+    while i <= PARAMETERS['memory_length']:
+        state = env.reset(number_of_random_actions=5)
+        while True:
+            action = env.agent.act(state)
+            new_state, reward, done = env.step(action)
+
+            if done:
+                new_state = None
+
+            memory = (state, action, reward, new_state, done)
+            env.agent.add_memory(abs(reward), memory)
+
+            state = new_state
+            i += 1
+
+            if done:
+                break
+
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
                 break
 
         state = env.reset(number_of_random_actions=5)
+        temp_q = []
         for step in range(max_steps):
             action = env.agent.act(state)
             new_state, reward, done = env.step(action)
@@ -127,10 +148,8 @@ if __name__ == "__main__":
             env.agent.epsilon *= env.agent.epsilon_decay
 
         if e % 5 == 0:
+            # print("Updated Target Network")
             env.agent.update_target()
-
-        #if int(q_values[-1] >= 100):
-         #   break
 
     env.agent.save_model('./models/inverted_double_pendulum_v0.h5')
 
