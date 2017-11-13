@@ -21,8 +21,9 @@ class Environment:
 
     def is_done(self):
         x_pos = self.sim.get_state().qpos[0]
-        angle = degrees(self.sim.get_state().qpos[1])
-        if (20. > angle > -20.) and (0.99 > x_pos > -0.99):
+        angle1 = degrees(self.sim.get_state().qpos[1])
+        angle2 = degrees(self.sim.get_state().qpos[2])
+        if (20. > angle1 > -20.) and (20. > angle2 > -20.) and (0.99 > x_pos > -0.99):
             return False
         else:
             return True
@@ -56,7 +57,7 @@ class Environment:
     def test_agent(self, parameters, model_path):
         self.spawn_agent(parameters)
         self.agent.load_model(model_path)
-        self.agent.epsilon = 0.2
+        self.agent.epsilon = 0.01
 
         while True:
             state = env.reset(number_of_random_actions=5)
@@ -70,30 +71,30 @@ class Environment:
 
 if __name__ == "__main__":
     env = Environment()
-    PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
-                  'topology': [[4, 64, 2], ['relu', 'linear']],
+    PARAMETERS = {'model3Dpath': 'xml/inverted_double_pendulum.xml',
+                  'topology': [[6, 48, 24, 2], ['relu', 'relu', 'linear']],
                   'memory_length': 10000,
-                  'batch_size': 256,
-                  'epochs': 10,
+                  'batch_size': 64,
+                  'epochs': 6,
                   'learning_rate': 0.001,
                   'gamma': 0.99,
                   'epsilon': 1,
-                  'epsilon_min': 0.01,
-                  'epsilon_decay': 0.99}
-    env.test_agent(PARAMETERS, './models/inverted_pendulum_v0.2.h5')
+                  'epsilon_min': 0.1,
+                  'epsilon_decay': 0.999}
+    # env.test_agent(PARAMETERS, './models/inverted_double_pendulum_v0.h5')
 
     env.spawn_agent(PARAMETERS)
 
-    epochs = 4000
-    max_steps = 1000
+    epochs = 100000
+    max_steps = 2000
     score_list = []
     q_values = [0.]
+    temp_q = []
     for e in range(epochs):
         if msvcrt.kbhit():
             if ord(msvcrt.getch()) == 59:
                 break
 
-        temp_q = []
         state = env.reset(number_of_random_actions=5)
         for step in range(max_steps):
             action = env.agent.act(state)
@@ -126,13 +127,15 @@ if __name__ == "__main__":
             env.agent.epsilon *= env.agent.epsilon_decay
 
         if e % 5 == 0:
-            # print("Updated Target Network")
             env.agent.update_target()
 
-    env.agent.save_model('./models/inverted_pendulum_v0.2.h5')
+        #if int(q_values[-1] >= 100):
+         #   break
+
+    env.agent.save_model('./models/inverted_double_pendulum_v0.h5')
 
     time_string = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-    file = open("./logs/inverted_pendulum/" + time_string + ".txt", 'w')
+    file = open("./logs/inverted_double_pendulum/" + time_string + ".txt", 'w')
     file.write(str(PARAMETERS) + "\n")
     for i in range(len(score_list)):
         file.write(str(score_list[i]) + ', ' + str(q_values[i]) + '\n')
