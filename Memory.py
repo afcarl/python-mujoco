@@ -1,5 +1,9 @@
 import random
 import numpy as np
+import os
+
+# Set to run on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Memory:

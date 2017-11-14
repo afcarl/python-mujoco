@@ -1,7 +1,10 @@
 import mujoco_py as mj
 import numpy as np
 from math import degrees
-import time
+import os
+
+# Set to run on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Environment:

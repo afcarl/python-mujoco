@@ -51,25 +51,31 @@ class Learner(Memory):
     def update_target(self):
         self.q_network_target.set_weights(self.q_network.get_weights())
 
-    def replay(self):
-        mini_batch = self.sample_memory(self.batch_size)
-        print(mini_batch)
-        states = np.stack([state[1][0][0] for state in mini_batch])
-        errors = np.zeros(len(mini_batch))
+    def get_targets(self, batch):
+        states = np.stack([state[1][0][0] for state in batch])
+        errors = np.zeros(len(batch))
         target = self.q_network.predict(states)
 
-        for i in range(len(mini_batch)):
-            a = mini_batch[i][1][1]
-            r = mini_batch[i][1][2]
-            s_ = mini_batch[i][1][3]
+        for i in range(len(batch)):
+            a = batch[i][1][1]
+            r = batch[i][1][2]
+            s_ = batch[i][1][3]
 
             old_val = target[i][a]
             if s_ is None:
                 target[i][a] = r
             else:
-                target[i][a] = r + self.gamma * self.q_network_target.predict(s_)[0][np.argmax(self.q_network.predict(s_))]
+                target[i][a] = r + self.gamma * self.q_network_target.predict(s_)[0][
+                    np.argmax(self.q_network.predict(s_))]
 
             errors[i] = abs(old_val - target[i][a])
-            self.update_memory(mini_batch[i][0], errors[i])
 
+        return (states, target, errors)
+
+    def replay(self):
+        mini_batch = self.sample_memory(self.batch_size)
+        states, target, errors = self.get_targets(mini_batch)
+
+        for i in range(len(mini_batch)):
+            self.update_memory(mini_batch[i][0], errors[i])
         self.train(states, target)

@@ -1,9 +1,12 @@
 import mujoco_py as mj
 import numpy as np
 from Actor import Actor
-from Memory import Memory
 from Learner import Learner
 import msvcrt
+import os
+
+# Set to run on CPU
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 if __name__ == "__main__":
@@ -16,9 +19,8 @@ if __name__ == "__main__":
                   'gamma': 0.99,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
-                  'epsilon_decay': 0.997}
+                  'epsilon_decay': 0.99}
 
-    memory = Memory(PARAMETERS['memory_length'])
     learner = Learner(PARAMETERS['topology'], PARAMETERS['epochs'], PARAMETERS['memory_length'],
                       PARAMETERS['batch_size'], PARAMETERS['learning_rate'], PARAMETERS['gamma'],
                       PARAMETERS['epsilon'], PARAMETERS['epsilon_min'], PARAMETERS['epsilon_decay'])
@@ -28,7 +30,8 @@ if __name__ == "__main__":
     actors = np.zeros(n_actors, dtype=object)
     sims = np.zeros(n_actors, dtype=object)
     for i in range(n_actors):
-        actors[i] = Actor(PARAMETERS['model3Dpath'], np.random.random())
+        actors[i] = Actor(PARAMETERS['model3Dpath'], np.random.random(), PARAMETERS['epsilon_min'],
+                          PARAMETERS['epsilon_decay'])
         actors[i].q_network = learner.q_network
         sims[i] = actors[i].sim
     sims = sims.tolist()
@@ -50,8 +53,8 @@ if __name__ == "__main__":
                 if done:
                     new_state = None
 
-                memory.add_memory(abs(reward), (state, action, reward, new_state, done))
-                print(abs(reward), (state, action, reward, new_state, done))
+                _, _, errors = learner.get_targets([(0, (state, action, reward, new_state, done))])
+                learner.add_memory(errors[0], (state, action, reward, new_state, done))
 
                 state = new_state
                 i += 1
@@ -73,7 +76,8 @@ if __name__ == "__main__":
                 if done:
                     new_state = None
 
-                memory.add_memory(abs(reward), (state, action, reward, new_state, done))
+                _, _, errors = learner.get_targets([(0, (state, action, reward, new_state, done))])
+                learner.add_memory(errors[0], (state, action, reward, new_state, done))
 
                 state = new_state
 
@@ -85,8 +89,8 @@ if __name__ == "__main__":
             learner.replay()
 
             # Decay the epsilon
-            if learner.epsilon > learner.epsilon_min:
-                learner.epsilon *= learner.epsilon_decay
+            if actor.epsilon > actor.epsilon_min:
+                actor.epsilon *= actor.epsilon_decay
 
             if e % 5 == 0:
                 # print("Updated Target Network")
