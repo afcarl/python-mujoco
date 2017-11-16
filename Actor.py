@@ -1,7 +1,7 @@
 import numpy as np
 import random
 from keras.models import load_model
-import mujoco_py as mj
+from mujoco_py import load_model_from_path, MjSim
 from Environment import Environment
 import os
 
@@ -10,13 +10,14 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Actor(Environment):
-    def __init__(self, model_path, epsilon, epsilon_min, epsilon_decay):
+    def __init__(self, model_path, epsilon, epsilon_min, epsilon_decay, max_steps):
         self.epsilon = epsilon
         self.epsilon_min = epsilon_min
         self.epsilon_decay = epsilon_decay
-        self.model3D = mj.load_model_from_path(model_path)
-        self.sim = mj.MjSim(self.model3D)
+        self.model3D = load_model_from_path(model_path)
+        self.sim = MjSim(self.model3D)
         self.q_network = None
+        self.max_steps = max_steps
         Environment.__init__(self, self.sim)
 
     def load_model(self, path):

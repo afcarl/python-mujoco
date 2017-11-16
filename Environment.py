@@ -1,4 +1,4 @@
-import mujoco_py as mj
+from mujoco_py import MjViewer, MjSimState
 import numpy as np
 from math import degrees
 import os
@@ -29,13 +29,13 @@ class Environment:
 
     def render(self):
         if not self.viewer:
-            self.viewer = mj.MjViewer(self.sim)
+            self.viewer = MjViewer(self.sim)
         self.viewer.render()
 
     def reset(self):
         random_pos = np.random.uniform(0., 0.05, size=(2))
         random_vel = np.random.uniform(0., 0.01, size=(2))
-        self.initial_state = mj.MjSimState(time=0.0, qpos=random_pos, qvel=random_vel, act=None, udd_state={})
+        self.initial_state = MjSimState(time=0.0, qpos=random_pos, qvel=random_vel, act=None, udd_state={})
         self.sim.set_state(self.initial_state)
 
         return np.array([self.sim.get_state().qpos.tolist() + self.sim.get_state().qvel.tolist()])
