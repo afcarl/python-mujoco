@@ -33,6 +33,9 @@ class Environment:
         self.viewer.render()
 
     def reset(self):
+        random_pos = np.random.uniform(0., 0.05, size=(2))
+        random_vel = np.random.uniform(0., 0.01, size=(2))
+        self.initial_state = mj.MjSimState(time=0.0, qpos=random_pos, qvel=random_vel, act=None, udd_state={})
         self.sim.set_state(self.initial_state)
-        #TODO Add random noise to the reset
+
         return np.array([self.sim.get_state().qpos.tolist() + self.sim.get_state().qvel.tolist()])
