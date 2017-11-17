@@ -16,7 +16,7 @@ class Environment:
     def is_done(self):
         x_pos = self.sim.get_state().qpos[0]
         angle = degrees(self.sim.get_state().qpos[1])
-        if (20. > angle > -20.) and (0.99 > x_pos > -0.99):
+        if (12.5 > angle > -12.5) and (0.99 > x_pos > -0.99):
             return False
         else:
             return True
@@ -34,7 +34,7 @@ class Environment:
 
     def reset(self):
         random_pos = np.random.uniform(0., 0.05, size=(2))
-        random_vel = np.random.uniform(0., 0.01, size=(2))
+        random_vel = np.random.uniform(0., 0.05, size=(2))
         self.initial_state = MjSimState(time=0.0, qpos=random_pos, qvel=random_vel, act=None, udd_state={})
         self.sim.set_state(self.initial_state)
 

@@ -2,20 +2,16 @@ import numpy as np
 from Actor import Actor
 from Learner import Learner
 import msvcrt
-import os
 import matplotlib.pyplot as plt
-
-# Set to run on CPU
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 if __name__ == "__main__":
     PARAMETERS = {'model3Dpath': 'xml/inverted_pendulum.xml',
                   'topology': [[4, 64, 2], ['relu', 'linear']],
                   'memory_length': 10000,
-                  'batch_size': 128,
-                  'epochs': 20,
-                  'learning_rate': 0.001,
+                  'batch_size': 256,
+                  'epochs': 25,
+                  'learning_rate': 0.0005,
                   'gamma': 0.99,
                   'epsilon': 1,
                   'epsilon_min': 0.1,
@@ -80,7 +76,7 @@ if __name__ == "__main__":
         plt.scatter(x[-1], y[-1])
         plt.pause(0.05)
 
-        if e % 5 == 0:
+        if e % 25 == 0:
             learner.update_target()
 
     learner.save_model('./models/inverted_pendulum_v0.2.h5')

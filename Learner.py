@@ -7,7 +7,7 @@ os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 from keras.models import Sequential, load_model
 from keras.layers import Dense
-from keras.optimizers import Adam
+from keras.optimizers import RMSprop
 
 
 class Learner(Memory):
@@ -39,7 +39,7 @@ class Learner(Memory):
         for i in range(len(self.topology[0])-2):
             model.add(Dense(self.topology[0][i+2], activation=self.topology[1][i+1]))
         model.compile(loss='mean_squared_error',
-                      optimizer=Adam(lr=self.learning_rate))
+                      optimizer=RMSprop(lr=self.learning_rate))
         return model
 
     def save_model(self, path):
