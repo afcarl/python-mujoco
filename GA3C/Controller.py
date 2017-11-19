@@ -15,8 +15,8 @@ class Controller:
         self.predictors = []
         self.trainers = []
 
-    def add_agent(self):
-        self.agents.append(Agent(1, self.predictor_q, self.training_q))
+    def add_agent(self, id):
+        self.agents.append(Agent(id, self.predictor_q, self.training_q, 1, 0.1))
         self.agents[-1].start()
 
     def add_predictor(self):
@@ -37,5 +37,8 @@ class Controller:
     def main(self):
         return
 
-c = Controller()
-c.add_agent()
+if __name__ == '__main__':
+    c = Controller()
+    for i in range(1):
+        c.add_agent(i)
+

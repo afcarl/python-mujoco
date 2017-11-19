@@ -1,19 +1,16 @@
-from mujoco_py import MjSim, load_model_from_path
+import gym
 
 
 class Environment:
-    def __init__(self, model_path):
-        self.name = 'TestEnvironment'
-        self.model = load_model_from_path(model_path)
-        self.sim = MjSim(self.model)
-        self.initial_state = self.sim.get_state()
-
-    def get_state(self):
-        return self.sim.get_state()
+    def __init__(self, name):
+        self.name = name
+        self.env = gym.make('CartPole-v0')
 
     def reset(self):
-        self.sim.set_state(self.initial_state)
+        self.env.reset()
 
-    def step(self):
-        self.sim.step()
+    def step(self, action):
+        return self.env.step(action)
 
+    def render(self):
+        self.env.render()
