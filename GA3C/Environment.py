@@ -7,7 +7,7 @@ class Environment:
         self.env = gym.make('CartPole-v0')
 
     def reset(self):
-        self.env.reset()
+        return self.env.reset()
 
     def step(self, action):
         return self.env.step(action)
