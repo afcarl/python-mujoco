@@ -18,10 +18,13 @@ class Predictor(Thread):
 
         while not self.exit_flag:
             sample = 1
-
             ids[0], states[0] = self.controller.predictor_q.get()
             while sample < Config.PREDICTION_BATCH_SIZE and not self.controller.predictor_q.empty():
-                ids[sample], states[sample] = self.controller.prediction_q.get()
+                try:
+                    ids[sample], states[sample] = self.controller.predictor_q.get()
+                except AttributeError:
+                    raise AttributeError
+
                 sample += 1
 
             batch = states[:sample]

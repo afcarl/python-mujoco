@@ -1,10 +1,10 @@
 from multiprocessing import Queue
-
 from GA3C.Brain import Brain
 from GA3C.Predictor import Predictor
 from GA3C.Trainer import Trainer
 from GA3C.Agent import Agent
 from GA3C.Config import Config
+
 
 class Controller(Brain):
     def __init__(self):
@@ -45,8 +45,7 @@ if __name__ == '__main__':
     for i in range(1):
         c.add_predictor(i)
 
-    for i in range(2):
+    for i in range(20):
         c.add_agent(i)
-
 
 

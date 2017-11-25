@@ -1,6 +1,5 @@
 from GA3C.Environment import Environment
 import multiprocessing
-import time
 import numpy as np
 from Config import Config
 
@@ -42,7 +41,6 @@ class Agent(multiprocessing.Process):
             yield new_state, reward, done, action, reward_sum
 
     def run(self):
-        time.sleep(np.random.rand())
         while True:
             for new_state, reward, done, action, reward_sum in self.run_episode():
                 if done:
