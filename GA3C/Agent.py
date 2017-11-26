@@ -38,10 +38,11 @@ class Agent(multiprocessing.Process):
             #self.env.render()
             new_state, reward, done, _ = self.env.step(action)
             reward_sum += reward
-            yield new_state, reward, done, action, reward_sum
+            if done:
+                yield new_state, reward, done, action, reward_sum
 
     def run(self):
         while True:
             for new_state, reward, done, action, reward_sum in self.run_episode():
-                if done:
-                    print('Agent ' + str(self.id) + ' scored: ' + str(reward_sum))
+                self.training_q.put((new_state, action, reward_sum))
+                print('Agent ' + str(self.id) + ' scored: ' + str(reward_sum))

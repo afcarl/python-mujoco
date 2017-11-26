@@ -17,7 +17,7 @@ class Controller(Brain):
         self.trainers = []
 
     def add_agent(self, id):
-        self.agents.append(Agent(id, self.predictor_q, self.training_q, 0.1, 0.1))
+        self.agents.append(Agent(id, self.predictor_q, self.training_q, 0.75, 0.1))
         self.agents[-1].start()
 
     def add_predictor(self, id):
@@ -25,7 +25,9 @@ class Controller(Brain):
         self.predictors[-1].start()
         return
 
-    def add_trainer(self):
+    def add_trainer(self, id):
+        self.trainers.append(Trainer(self, id))
+        self.trainers[-1].start()
         return
 
     def remove_agent(self):
@@ -45,7 +47,12 @@ if __name__ == '__main__':
     for i in range(1):
         c.add_predictor(i)
 
-    for i in range(20):
+    for i in range(1):
+        c.add_trainer(i)
+
+    for i in range(4):
         c.add_agent(i)
+
+# Note currently only adding the final experience to the batch. Should be all the experiences!
 
 
