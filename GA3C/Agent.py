@@ -1,4 +1,4 @@
-from GA3C.Environment import Environment
+from Environment import Environment
 import multiprocessing
 import numpy as np
 from Config import Config
@@ -38,8 +38,7 @@ class Agent(multiprocessing.Process):
             #self.env.render()
             new_state, reward, done, _ = self.env.step(action)
             reward_sum += reward
-            if done:
-                yield new_state, reward, done, action, reward_sum
+            yield new_state, reward, done, action, reward_sum
 
     def run(self):
         while True:

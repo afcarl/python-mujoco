@@ -5,7 +5,7 @@ from keras.layers import Dense, Input
 from keras import backend as K
 import os
 
-#os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 
 
 class Brain:

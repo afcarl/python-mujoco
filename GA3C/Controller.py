@@ -1,9 +1,9 @@
 from multiprocessing import Queue
-from GA3C.Brain import Brain
-from GA3C.Predictor import Predictor
-from GA3C.Trainer import Trainer
-from GA3C.Agent import Agent
-from GA3C.Config import Config
+from Brain import Brain
+from Predictor import Predictor
+from Trainer import Trainer
+from Agent import Agent
+from Config import Config
 
 
 class Controller(Brain):
@@ -53,6 +53,8 @@ if __name__ == '__main__':
     for i in range(4):
         c.add_agent(i)
 
-# Note currently only adding the final experience to the batch. Should be all the experiences!
+# FIXED Note currently only adding the final experience to the batch. Should be all the experiences!
+# Add a shared memory and sample from that to train.
+# Add reward decay
 
 
