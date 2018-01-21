@@ -1,6 +1,7 @@
 from threading import Thread
 import numpy as np
 from Config import Config
+from multiprocessing import Queue
 
 
 class Predictor(Thread):
@@ -19,12 +20,11 @@ class Predictor(Thread):
         while not self.exit_flag:
             sample = 1
             ids[0], states[0] = self.controller.predictor_q.get()
-            while sample < Config.PREDICTION_BATCH_SIZE and not self.controller.predictor_q.empty():
+            while sample < Config.PREDICTION_BATCH_SIZE:
                 try:
-                    ids[sample], states[sample] = self.controller.predictor_q.get()
-                except AttributeError:
-                    raise AttributeError
-
+                    ids[sample], states[sample] = self.controller.predictor_q.get(True, 0.01)
+                except Exception:
+                    break
                 sample += 1
 
             batch = states[:sample]
